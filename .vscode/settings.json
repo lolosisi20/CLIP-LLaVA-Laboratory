@@ -1,0 +1,12 @@
+{
+  "python.defaultInterpreterPath": "D:\\jupyter\\.venv\\Scripts\\python.exe",
+  "python.venvPath": "D:\\jupyter",
+  "python.venvFolders": [".venv"],
+  "jupyter.notebookFileRoot": "${fileDirname}",
+  "files.watcherExclude": {
+    "**/.ipynb_checkpoints/**": true
+  },
+  "search.exclude": {
+    "**/.ipynb_checkpoints": true
+  }
+}
