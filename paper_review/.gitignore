@@ -1,0 +1,9 @@
+.env
+.cache/
+__pycache__/
+.ipynb_checkpoints/
+
+# personal and generated files, not part of the project
+video/SCRIPT.md
+video/slides.html
+video/paper_review_narrated.mp4

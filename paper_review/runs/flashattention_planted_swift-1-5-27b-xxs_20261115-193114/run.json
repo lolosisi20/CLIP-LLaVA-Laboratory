@@ -1,0 +1,43 @@
+{
+  "paper": "flashattention_planted.md",
+  "model": "swift-1.5-27b-xxs",
+  "profile": {
+    "slots": 2,
+    "sampling": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "extra_body": {
+        "top_k": 20,
+        "min_p": 0.0
+      }
+    },
+    "agent_effort": "medium",
+    "answer_effort": "none"
+  },
+  "started": "2026-11-15 19:31",
+  "commit": "a36dfef",
+  "protocol": {
+    "literature": {
+      "sources": [
+        "arxiv",
+        "openalex",
+        "semantic_scholar"
+      ],
+      "queries": 4,
+      "results_per_query": 8,
+      "screening_criteria": "Include a record when it is about the same problem, method family, hardware setting or benchmark as the\nreviewed paper, so it can confirm or contradict the paper's claims.\nExclude records that only share a keyword, are surveys of unrelated fields, or have no abstract.\n"
+    },
+    "paper": {
+      "include_appendix": false,
+      "chunk_characters": 6000
+    },
+    "review": {
+      "max_facts": 20,
+      "max_findings": 8,
+      "parallel_agents": 6,
+      "validator_steps": 14,
+      "human_review": false
+    }
+  },
+  "minutes": 21.495446149508158
+}

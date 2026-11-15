@@ -1,0 +1,66 @@
+{
+  "run": "flashattention_planted_swift-1-5-27b-xxs_20261115-193114",
+  "model": "swift-1.5-27b-xxs",
+  "rows": [
+    {
+      "kind": "fact",
+      "planted": "the A100 GPU has 4-8GB of high bandwidth memory",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "fact",
+      "planted": "which is the number of arithmetic operations per second of compute time",
+      "extracted": false,
+      "caught": false
+    },
+    {
+      "kind": "fact",
+      "planted": "The on-chip SRAM is an order of magnitude slower than HBM",
+      "extracted": false,
+      "caught": false
+    },
+    {
+      "kind": "finding",
+      "planted": "30× speedup on GPT-2 (seq. length 1K)",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "finding",
+      "planted": "85% end-to-end wall-clock speedup on BERT-large",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "grammar",
+      "planted": "Transformers has grown larger",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "grammar",
+      "planted": "to make it more easier to build on this primitive",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "grammar",
+      "planted": "We discusses limitation of our approach",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "grammar",
+      "planted": "most operations in Transformers are bottlenecked by memory acceses",
+      "extracted": true,
+      "caught": true
+    },
+    {
+      "kind": "redundancy",
+      "planted": "paragraph of 2.1 copied into 4.3",
+      "extracted": true,
+      "caught": true
+    }
+  ]
+}

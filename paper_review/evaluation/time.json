@@ -1,0 +1,23 @@
+{
+  "run": "flashattention_swift-1-5-27b-xxs_20261115-190315",
+  "pipeline_minutes": 27.9,
+  "manual_minutes": 442,
+  "manual_breakdown": {
+    "literature search and screening": 51,
+    "fact checking": 120,
+    "finding checking": 120,
+    "structure review": 45,
+    "copy-editing": 46,
+    "writing the report": 60
+  },
+  "assumptions": {
+    "search strategy": 30,
+    "per record screened": 1.5,
+    "per fact checked": 6,
+    "per finding checked": 15,
+    "structure review": 45,
+    "per 1000 words copy-edited": 8,
+    "writing the report": 60
+  },
+  "speedup": 15.8
+}

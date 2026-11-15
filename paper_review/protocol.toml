@@ -1,0 +1,22 @@
+# The review settings used for every paper. Change them here instead of in the code.
+
+[literature]
+sources = ["arxiv", "openalex", "semantic_scholar"]
+queries = 4                 # search queries the strategy agent writes
+results_per_query = 8       # records asked from each source for each query
+screening_criteria = """
+Include a record when it is about the same problem, method family, hardware setting or benchmark as the
+reviewed paper, so it can confirm or contradict the paper's claims.
+Exclude records that only share a keyword, are surveys of unrelated fields, or have no abstract.
+"""
+
+[paper]
+include_appendix = false    # review the main body only (everything before the references)
+chunk_characters = 6000     # size of the slices the reviewing agents read
+
+[review]
+max_facts = 20              # facts sent to validation: each section in turn, specific numbers first
+max_findings = 8            # findings sent to validation
+parallel_agents = 6         # agents of one stage running at once; the model's 2 slots are shared, agents reading pages leave theirs free
+validator_steps = 14        # tool rounds a validator may take before it must answer
+human_review = false        # pause after fact extraction so a person can drop facts (or pass --human)

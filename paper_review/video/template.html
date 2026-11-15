@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agentic Paper Review</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #121212; color: #e8e8e8;
+  font-family: "Segoe UI", sans-serif; }
+.scene { position: absolute; inset: 0; padding: 100px 140px; opacity: 0; }
+.step { font-size: 22px; color: #7a7a7a; letter-spacing: 0.04em; }
+h1 { font-size: 56px; font-weight: 500; margin: 12px 0 44px; }
+p, li { font-size: 29px; line-height: 1.5; color: #c4c4c4; }
+ul { list-style: none; }
+li { margin-bottom: 14px; }
+.small { font-size: 23px; color: #8c8c8c; }
+.tag { font-family: "Consolas", monospace; font-size: 20px; color: #cfcfcf; background: #1f1f1f; border-radius: 8px;
+  padding: 3px 12px; display: inline-block; }
+pre { font-family: "Consolas", monospace; font-size: 20px; line-height: 1.5; color: #d0d0d0; background: #1b1b1b;
+  border-radius: 14px; padding: 22px 28px; white-space: pre-wrap; overflow: hidden; }
+.columns { display: flex; gap: 70px; }
+.columns > div { flex: 1; min-width: 0; }
+.chart { background: #fcfcfb; padding: 16px; border-radius: 14px; overflow: hidden; }
+.chart img { width: 100%; display: block; }
+.supported { color: #5cb85c; } .partially_supported { color: #d9a93a; }
+.contradicted { color: #d9534f; } .unverifiable { color: #8c8c8c; }
+.number { font-size: 68px; font-weight: 500; color: #e8e8e8; }
+.correction { display: flex; align-items: baseline; gap: 32px; margin-top: 62px; }
+.correction .tag { min-width: 150px; text-align: center; }
+.correction p { font-size: 34px; color: #d0d0d0; }
+.fix { position: relative; display: inline-block; }
+.old { position: relative; color: #8c8c8c; }
+.strike { position: absolute; left: -3px; right: -3px; top: 55%; height: 3px; background: #d9534f; border-radius: 2px;
+  transform-origin: left; }
+.new { position: absolute; left: 50%; bottom: 80%; transform: translateX(-50%); color: #5cb85c; font-size: 28px;
+  white-space: nowrap; }
+.caret { color: #d9534f; }
+
+@keyframes scene { 0% { opacity: 0 } 3% { opacity: 1 } 97% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fadeOut { from { opacity: 1 } to { opacity: 0; visibility: hidden } }
+@keyframes draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes strike { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+#progress { position: absolute; left: 0; bottom: 0; height: 3px; background: #3a3a3a; }
+@keyframes progress { from { width: 0 } to { width: 100% } }
+</style>
+</head>
+<body>
+<div id="scenes"></div>
+<div id="progress"></div>
+
+<script>
+const D = /*DATA*/null;
+
+const LABEL = { supported: "Supported", partially_supported: "Partly supported", contradicted: "Contradicted", unverifiable: "Unverifiable" };
+const escape = text => String(text ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const shorten = (text, limit) => { text = String(text ?? "").replace(/\s+/g, " ").trim(); return text.length > limit ? text.slice(0, limit - 1) + "…" : text; };
+const verdict = value => `<span class="${value}">${LABEL[value]}</span>`;
+const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const lines = (items, start, gap = 0.6) => `<ul>${items.map((item, i) => `<li data-at="${start + i * gap}">${item}</li>`).join("")}</ul>`;
+
+// ── Scenes: [seconds, html] ──
+
+function titleScene() {
+  return [7, `
+    <div style="padding-top:300px">
+      <h1 style="font-size:84px" data-at="0.3">Agentic Paper Review</h1>
+      <p data-at="1.2">A small team of AI agents that reads a research paper and checks it the way a careful reviewer would.</p>
+    </div>`];
+}
+
+function questionsScene() {
+  return [10, `
+    <div class="step" data-at="0.2">The idea</div>
+    <h1 data-at="0.4">What a good reviewer wants to know</h1>
+    ${lines(["Are the facts it relies on true?", "Do its results hold up?", "Is it put together well?", "Is it written well?"], 1, 0.7)}
+    <p data-at="4.4" style="margin-top:40px">Each question gets its own agent, and every claim gets its own investigator.</p>`];
+}
+
+const BOXES = {
+  ingest: [60, 260, "Read the paper"],
+  facts: [380, 40, "Facts"], findings: [380, 150, "Findings"], literature: [380, 260, "Prior work"],
+  structure: [380, 370, "Structure"], language: [380, 480, "Language"],
+  human: [700, 40, "Human check"], validate: [1020, 150, "Validators"],
+  critic: [1340, 260, "Critic"], synthesis: [1640, 260, "Report"],
+};
+const ARROWS = [["ingest", "facts"], ["ingest", "findings"], ["ingest", "literature"], ["ingest", "structure"], ["ingest", "language"],
+  ["facts", "human"], ["human", "validate"], ["findings", "validate"], ["literature", "validate"],
+  ["validate", "critic"], ["structure", "critic"], ["language", "critic"], ["critic", "synthesis"]];
+const BOX_TIME = { ingest: 0.8, facts: 2, findings: 2, literature: 2, structure: 2, language: 2, human: 4, validate: 5, critic: 7, synthesis: 8 };
+
+function pipelineScene() {
+  const width = 220, height = 60;
+  const arrow = ([from, to]) => {
+    const [x1, y1] = BOXES[from], [x2, y2] = BOXES[to];
+    return `<line x1="${x1 + width}" y1="${y1 + height / 2}" x2="${x2}" y2="${y2 + height / 2}" stroke="#3d3d3d" stroke-width="2"
+      pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" data-a="draw" data-at="${BOX_TIME[to] - 0.5}"/>`;
+  };
+  const box = name => {
+    const [x, y, label] = BOXES[name];
+    return `<g data-at="${BOX_TIME[name]}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="14" fill="#1d1d1d"/>
+      <text x="${x + width / 2}" y="${y + 39}" text-anchor="middle" fill="#e0e0e0" font-size="23">${label}</text></g>`;
+  };
+  return [17, `
+    <div class="step" data-at="0.2">How it fits together</div>
+    <h1 data-at="0.4">One LangGraph graph</h1>
+    <svg width="1920" height="560" style="position:absolute;left:0;top:270px">
+      ${ARROWS.map(arrow).join("")}${Object.keys(BOXES).map(box).join("")}
+    </svg>
+    <p class="small" data-at="9" style="position:absolute;top:860px">Five agents start at the same time. Then every claim gets a fresh validator, a few running at once.<br>
+      The critic waits for all of them, and every model and tool call is logged to trace.jsonl.</p>`];
+}
+
+function ingestScene() {
+  return [11, `
+    <div class="step" data-at="0.2">Step 1</div>
+    <h1 data-at="0.4">Reading the paper</h1>
+    ${lines([
+      `The PDF is split into its ${D.sections.length} sections, then into short passages.`,
+      "A passage can be found by its exact words (BM25) or by its meaning (EmbeddingGemma).",
+      "The two rankings are blended with reciprocal rank fusion.",
+      "The same search works on the paper, on prior work and on long web pages.",
+    ], 1, 1)}`];
+}
+
+function literatureScene() {
+  const prisma = D.literature.prisma;
+  const identified = Object.values(prisma.identified).reduce((a, b) => a + b, 0);
+  return [14, `
+    <div class="step" data-at="0.2">Step 2</div>
+    <h1 data-at="0.4">Finding the prior work</h1>
+    <p data-at="1">An agent writes the search queries:</p>
+    ${D.literature.queries.slice(0, 4).map((q, i) => `<div data-at="${1.6 + i * 0.5}" style="margin-top:12px"><span class="tag">${escape(q.boolean)}</span></div>`).join("")}
+    <p data-at="4.5" style="margin-top:40px">and runs them on arXiv, OpenAlex and Semantic Scholar.</p>
+    <p data-at="5.5">${identified} papers found → ${identified - prisma.duplicates_removed} unique → ${prisma.screened} screened → <b>${prisma.included} kept</b></p>
+    <p data-at="7" class="small" style="margin-top:20px">Two screeners read every abstract on their own, and a third breaks ties.
+      They agreed with Cohen's κ = ${D.literature.screening_agreement.kappa}.</p>`];
+}
+
+function factsScene() {
+  return [13, `
+    <div class="step" data-at="0.2">Step 3</div>
+    <h1 data-at="0.4">Facts and findings</h1>
+    <p data-at="1">A fact is something the paper takes as given about the world. A finding is what it claims about its own work.</p>
+    <p data-at="2" class="small" style="margin:20px 0 30px">Some of the facts in this paper:</p>
+    ${lines(D.facts.slice(0, 4).map(fact => `<span class="small">${fact.id}</span>&nbsp; ${escape(fact.statement)}`), 3, 0.8)}`];
+}
+
+function toolLine(call) {
+  const input = call.input.replace(/^\{.*?:\s*'|'\}$/g, "");
+  return `<span class="tag">${call.tool}</span>&nbsp; <span class="small">${escape(shorten(input, 110))}</span>`;
+}
+
+function factValidatorScene() {
+  const check = D.fact_example.check;
+  const quotes = check.evidence.map(item => `“${escape(shorten(item.quote, 220))}” <span class="small">(${item.source_id}, matched on the page)</span>`);
+  return [22, `
+    <div class="step" data-at="0.2">Step 4</div>
+    <h1 data-at="0.4">A fresh agent for every fact</h1>
+    <div data-out="13">
+      <p data-at="1"><b>${check.id}</b>&nbsp; ${escape(check.text)}</p>
+      <div style="margin-top:30px">${lines(D.fact_example.calls.slice(0, 4).map(toolLine), 2, 1.1)}</div>
+      <div style="margin-top:20px">${lines(quotes, 7, 1)}</div>
+      <p data-at="10" style="margin-top:20px">Verdict: ${verdict(check.verdict)}</p>
+    </div>
+    <div style="position:absolute;top:270px;left:140px;right:140px">
+      <p data-at="13.5">Every quote is matched word for word against the page it came from. If no real quote backs a verdict, the fact is marked unverifiable.</p>
+      <div class="columns" style="margin-top:30px" data-at="15">
+        ${[0, 1].map(half => `<div>${lines(D.fact_verdicts.filter((_, i) => i % 2 === half).map(item => `${item.id}&nbsp; ${verdict(item.verdict)}`), 15.2 + half * 0.3, 0.25)}</div>`).join("")}
+      </div>
+    </div>`];
+}
+
+function findingValidatorScene() {
+  const check = D.finding_example.check, python = D.finding_example.python;
+  const code = python ? python.input.replace(/^\{'code':\s*'|'\}$/g, "").replace(/\\n/g, "\n").replace(/\\'/g, "'") : "";
+  const output = python ? python.output.replace(/^\[C\d+\]\n?/, "") : "";
+  return [20, `
+    <div class="step" data-at="0.2">Step 5</div>
+    <h1 data-at="0.4">Checking the findings</h1>
+    <div data-out="13">
+      <p data-at="1"><b>${check.id}</b>&nbsp; ${escape(check.text)}</p>
+      ${python ? `<pre data-at="2.5" style="margin-top:24px;max-height:300px">${escape(code.split("\n").slice(0, 10).join("\n"))}</pre>
+        <pre data-at="5" style="margin-top:12px;max-height:120px">${escape(output.split("\n").slice(0, 4).join("\n"))}</pre>`
+        : `<div style="margin-top:24px">${lines(D.finding_example.calls.slice(0, 5).map(toolLine), 2.5, 1)}</div>`}
+      <p data-at="8" style="margin-top:20px">Verdict: ${verdict(check.verdict)}</p>
+    </div>
+    <div style="position:absolute;top:270px;left:140px;right:140px">
+      <p data-at="13.5" class="small">Each validator can read the paper, search the prior work and the web, and run Python.</p>
+      <div style="margin-top:24px">${lines(D.finding_verdicts.map(item => `${item.id}&nbsp; ${verdict(item.verdict)} &nbsp;<span class="small">${escape(item.text)}</span>`), 14, 0.35)}</div>
+    </div>`];
+}
+
+function structureScene() {
+  const rowHeight = 44, labelX = 140, barX = 920, barMax = 360, arcX = 1540;
+  const biggest = Math.max(...D.outline.map(row => row.size));
+  const y = i => 24 + i * rowHeight;
+  const barEnd = row => barX + Math.max(4, row.size / biggest * barMax);
+  const linked = new Set(D.repeats.flatMap(pair => [pair.from, pair.to]));
+  const rows = D.outline.map((row, i) => {
+    const tags = row.tags.map((tag, k) => `<g data-at="${4 + k * 0.3}">
+        <rect x="${barEnd(row) + 22}" y="${y(i) - 16}" width="${tag.length * 10 + 28}" height="32" rx="9" fill="#2a2418"/>
+        <text x="${barEnd(row) + 36}" y="${y(i) + 6}" fill="#d9a93a" font-size="18">${escape(tag)}</text></g>`).join("");
+    const lead = linked.has(i) ? `<g data-at="5.2"><line x1="${barEnd(row) + 18}" y1="${y(i)}" x2="${arcX - 8}" y2="${y(i)}" stroke="#333"
+        stroke-width="2" stroke-dasharray="2 7"/><circle cx="${arcX}" cy="${y(i)}" r="5" fill="#8ab4f8"/></g>` : "";
+    return `<text x="${labelX + row.level * 32}" y="${y(i) + 7}" fill="${row.level ? "#9a9a9a" : "#e0e0e0"}" font-size="${row.level ? 19 : 22}"
+        data-at="${0.8 + i * 0.12}">${escape(row.title)}</text>
+      <line x1="${barX}" y1="${y(i)}" x2="${barEnd(row)}" y2="${y(i)}" stroke="${row.tags.length ? "#d9a93a" : "#4a4a4a"}" stroke-width="14"
+        stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" data-a="draw" data-at="${1 + i * 0.12}"/>
+      ${tags}${lead}`;
+  }).join("");
+  const arcs = D.repeats.map((pair, k) => {
+    const radius = (y(pair.to) - y(pair.from)) / 2;
+    return `<path d="M ${arcX} ${y(pair.from)} A ${radius} ${radius} 0 0 1 ${arcX} ${y(pair.to)}" fill="none" stroke="#8ab4f8"
+      stroke-width="2.5" stroke-opacity="0.8" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" data-a="draw" data-at="${5.6 + k * 0.35}"/>`;
+  }).join("");
+  return [11, `
+    <div class="step" data-at="0.2">Step 6</div>
+    <h1 data-at="0.4">How the paper is put together</h1>
+    <svg width="1920" height="${y(D.outline.length)}" style="position:absolute;left:0;top:250px">${rows}${arcs}</svg>
+    <p class="small" data-at="8" style="position:absolute;top:920px">Each bar is as long as its section. Amber tags are problems the structure agent found.<br>
+      Blue arcs join two sections that say the same thing.</p>`];
+}
+
+function languageScene() {
+  const change = (segment, at) => `<span class="fix">${segment.old
+      ? `<span class="old">${escape(segment.old)}<i class="strike" data-a="strike" data-at="${at}"></i></span>`
+      : `<span class="caret" data-at="${at}">‸</span>`}${segment.new ? `<span class="new" data-at="${at + 0.5}"
+        ${/^\W+$/.test(segment.new) ? 'style="font-size:46px;font-weight:700"' : ""}>${escape(segment.new)}</span>` : ""}</span>`;
+  const rows = D.corrections.map((item, i) => {
+    const at = 0.8 + i * 1.2;
+    const sentence = item.segments.map(segment => segment.text !== undefined ? escape(segment.text) : change(segment, at + 0.5)).join("");
+    return `<div class="correction" data-at="${at}"><span class="tag">${item.category}</span><p>${sentence}</p></div>`;
+  }).join("");
+  return [10, `
+    <div class="step" data-at="0.2">Step 7</div>
+    <h1 data-at="0.4" style="margin-bottom:10px">Grammar and word choice</h1>
+    ${rows}
+    <p class="small" data-at="7" style="position:absolute;top:920px">${D.language_count} fixes kept out of ${D.language_reported} suggested.
+      Each one is quoted straight from the paper and changes only a few words.</p>`];
+}
+
+function criticScene() {
+  const critic = D.critic;
+  const opening = D.summary.split("\n").find(line => line.trim() && !line.startsWith("#")) || "";
+  const verdictLine = opening.split(/(?<=\.)\s/)[0].replace(/\s*\[[^\]]*\]/g, "");
+  return [11, `
+    <div class="step" data-at="0.2">Step 8</div>
+    <h1 data-at="0.4">A critic checks the work before the report</h1>
+    ${lines([
+      `${critic.facts.rejected_quotes + critic.findings.rejected_quotes} quotes thrown out: not on the page, or not about the claim`,
+      `${critic.facts.downgraded_for_missing_evidence + critic.findings.downgraded_for_missing_evidence} verdicts lowered because the evidence was thin`,
+      `${count(critic.conflicts.length, "conflict")} between verdicts and ${count(critic.gaps.length, "claim")} nobody checked, both flagged`,
+    ], 1, 0.8)}
+    <p data-at="4.5" class="small" style="margin-top:50px">Then the report is written. It opens with:</p>
+    <p data-at="5" style="margin-top:12px">“${escape(verdictLine)}”</p>`];
+}
+
+function resultsScene() {
+  return [12, `
+    <div class="step" data-at="0.2">The run</div>
+    <h1 data-at="0.4">${D.minutes.toFixed(0)} minutes on a local 27B model</h1>
+    <div class="columns" style="gap:40px">
+      <div class="chart" data-at="1"><img src="${D.figures.verdicts}"></div>
+      <div class="chart" data-at="2"><img src="${D.figures.timeline}"></div>
+    </div>
+    <p class="small" data-at="3.5" style="margin-top:30px">${D.stats.model_calls} model calls, ${D.stats.tool_calls} tool calls and ${(D.stats.tokens / 1e6).toFixed(1)} million tokens, all on one machine.</p>`];
+}
+
+function evaluationScene() {
+  const items = [];
+  for (const rows of Object.values(D.planted || {})) {
+    items.push(`<span class="number">${rows.filter(row => row.caught).length}/${rows.length}</span>&nbsp; planted errors caught`);
+  }
+  if (D.agreement) items.push(`<span class="number">${Math.round(D.agreement.exact_agreement * 100)}%</span>&nbsp; of verdicts the same when fresh agents redo them`);
+  if (D.time) items.push(`<span class="number">${D.time.speedup}×</span>&nbsp; faster than the ${(D.time.manual_minutes / 60).toFixed(1)} hours it would take by hand`);
+  return [13, `
+    <div class="step" data-at="0.2">Evaluation</div>
+    <h1 data-at="0.4">How well does it work?</h1>
+    ${lines(items, 1, 1.2)}
+    <p class="small" data-at="5" style="margin-top:30px">I hid false facts, inflated results, grammar slips and a copied paragraph in a copy of the paper.</p>`];
+}
+
+function closingScene() {
+  return [8, `
+    <div style="padding-top:320px">
+      <h1 style="font-size:72px" data-at="0.3">Each verdict comes with a quote from its source.</h1>
+      <p data-at="1.2"><span class="tag" style="font-size:28px;padding:8px 18px">python review.py paper.pdf</span></p>
+      <p class="small" data-at="2" style="margin-top:30px">LangGraph · LangChain · Swift 1.5 27B · EmbeddingGemma · SearXNG · arXiv · OpenAlex</p>
+    </div>`];
+}
+
+// ── Timeline: absolute delays, so seek(t) can place every animation ──
+
+function animate(element, sceneStart) {
+  const name = element.dataset.a || "fadeIn";
+  const at = sceneStart + parseFloat(element.dataset.at || 0);
+  const parts = [`${name} 0.6s ease ${at}s both`];
+  if (element.dataset.out) parts.push(`fadeOut .4s ease ${sceneStart + parseFloat(element.dataset.out)}s forwards`);
+  element.style.animation = parts.join(", ");
+}
+
+const SCENES = [titleScene, questionsScene, pipelineScene, ingestScene, literatureScene, factsScene, factValidatorScene,
+  findingValidatorScene, structureScene, languageScene, criticScene, resultsScene, evaluationScene, closingScene];
+
+function build() {
+  const container = document.getElementById("scenes");
+  let start = 0;
+  for (const make of SCENES) {
+    const [seconds, html] = make();
+    const scene = document.createElement("section");
+    scene.className = "scene";
+    scene.innerHTML = html;
+    scene.style.animation = `scene ${seconds}s linear ${start}s both`;
+    container.appendChild(scene);
+    scene.querySelectorAll("[data-at], [data-out]").forEach(element => animate(element, start));
+    start += seconds;
+  }
+  document.getElementById("progress").style.animation = `progress ${start}s linear 0s both`;
+  window.totalSeconds = start;
+}
+
+window.seek = seconds => document.getAnimations().forEach(animation => { animation.pause(); animation.currentTime = seconds * 1000; });
+
+build();
+Promise.all([document.fonts.ready, ...[...document.images].map(image => image.decode().catch(() => null))]).then(() => {
+  window.ready = true;  // in a browser the slides just play; the recorder seeks each frame itself
+});
+</script>
+</body>
+</html>
