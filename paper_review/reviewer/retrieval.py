@@ -27,7 +27,7 @@ def words(text: str) -> list[str]:
 
 
 def embed(texts: list[str], is_query: bool = False) -> np.ndarray:
-    """EmbeddingGemma vectors from the orchestrator, cached on disk, normalised so a dot product is the cosine."""
+    """EmbeddingGemma vectors from the API server, cached on disk, normalised so a dot product is the cosine."""
     prefix = "task: search result | query: " if is_query else "title: none | text: "
     inputs = [prefix + text[:2000] for text in texts]
     cache_path = settings.cache_dir / "embeddings.jsonl"

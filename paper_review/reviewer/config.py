@@ -16,7 +16,7 @@ def load_env_file(path: Path):
 
 
 load_env_file(ROOT / ".env")
-ORCHESTRATOR = os.environ.get("ORCHESTRATOR_URL", "http://localhost:8080")
+API_BASE = os.environ.get("OPENAI_COMPATIBLE_API", "http://localhost:8080")
 
 MODEL_PROFILES = {
     # Swift 1.5 27B as Strap runs it: the build that fits whole on the GPU with its multi-token-prediction head
@@ -35,10 +35,10 @@ DEFAULT_PROFILE = {"slots": 1, "sampling": {"temperature": 0.7}, "agent_effort":
 @dataclass
 class Settings:
     model: str = os.environ.get("LLM_MODEL", "swift-1.5-27b-xxs")
-    llm_url: str = os.environ.get("LLM_BASE_URL", f"{ORCHESTRATOR}/api/llm/v1")
+    llm_url: str = os.environ.get("LLM_BASE_URL", f"{API_BASE}/api/llm/v1")
     api_key: str = os.environ.get("LLM_API_KEY", "not-needed")
-    embeddings_url: str = f"{ORCHESTRATOR}/api/embeddings"
-    search_url: str = f"{ORCHESTRATOR}/api/search"
+    embeddings_url: str = f"{API_BASE}/api/embeddings"
+    search_url: str = f"{API_BASE}/api/search"
     cache_dir: Path = ROOT / ".cache"
     protocol: dict = field(default_factory=dict)
 
